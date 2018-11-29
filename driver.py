@@ -134,8 +134,8 @@ class GameDriver(object):
                     self.agent_strengths[idx] += self.objects[final_loc].delta
                     del self.objects[final_loc]
                     for i in range(len(self.agents)):
-                        if final_loc in self.agent_objects[idx]:
-                            del self.agent_objects[idx][final_loc]
+                        if final_loc in self.agent_objects[i]:
+                            del self.agent_objects[i][final_loc]
                 elif isinstance(self.objects[final_loc], utils.StaticMonster):
                     # fight
                     win_chance = self.agent_strengths[idx] / \
