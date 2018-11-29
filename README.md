@@ -12,3 +12,7 @@ $ python play.py --height 10 --width 10 \
 ```
 
 To implement a new agent, create a new agent class inheriting from the `BaseAgent` class in the `agent.py` file. You just need to implement the `step(...)` function. See a look at how `RandomAgent` has been implemented.
+
+## Requirements
+* Python >= 3.6
+* Numpy
