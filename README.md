@@ -16,3 +16,4 @@ To implement a new agent, create a new agent class inheriting from the `BaseAgen
 ## Requirements
 * Python >= 3.6
 * Numpy
+* Emoji (package: emoji) -- if you want emoji maps
