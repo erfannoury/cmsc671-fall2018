@@ -33,7 +33,7 @@ class GameDriver(object):
 
     """
     def __init__(self, height, width, num_powerups, num_monsters, agents,
-                 initial_strength, save_dir, map_file=None):
+                 initial_strength, save_dir=None, map_file=None):
         assert (num_monsters + num_powerups + 1) <= height * width, \
             'Number of objects in the map should be less than the number of ' \
             'tiles in the map'
@@ -58,13 +58,12 @@ class GameDriver(object):
         self.agent_strengths = [initial_strength] * len(agents)
         self.initial_strength = initial_strength
 
-        if map_file is None:
-            print('Initializing the game')
-            self.initialize_game()
+        self.map_file = map_file
+
+        print('Initializing the game')
+        self.initialize_game()
+        if save_dir is not None:
             self.save_map(save_dir)
-        else:
-            print('Loading map')
-            self.load_map(map_file)
 
     def play(self, verbose=False):
         for step, agent in enumerate(cycle(self.agents)):
@@ -142,7 +141,7 @@ class GameDriver(object):
                     win_chance = self.agent_strengths[idx] / \
                         (self.agent_strengths[idx] +
                          self.objects[final_loc].strength)
-                    if np.random.random() > win_chance:
+                    if np.random.random() < win_chance:
                         # agent wins
                         self.agent_strengths[idx] = self.initial_strength
                         self.agent_strengths[idx] += \
@@ -168,7 +167,21 @@ class GameDriver(object):
         This function will generate a random map with the given size and
         initialize other required objects
         """
-        # generate the game map
+        if self.map_file is None:
+            # generate the game map
+            self.generate_map()
+        else:
+            self.load_map(self.map_file)
+
+        for _ in self.agents:
+            # create game maps for each agent
+            self.agent_maps.append(
+                np.full((self.height, self.width), utils.MapTiles.UKNOWN))
+
+            # create empty object dictionary for each agent
+            self.agent_objects.append({})
+
+    def generate_map(self):
         # TODO: Create a better function for generating the map
         self.game_map = np.random.choice(
             list(utils.MapTiles)[1:], (self.height, self.width),
@@ -201,15 +214,6 @@ class GameDriver(object):
                 idx = np.random.choice(len(nonwall_indices[0]))
                 loc = (nonwall_indices[0][idx], nonwall_indices[1][idx])
             self.agent_locations.append(loc)
-
-        # create game maps for each agent
-        for agent in self.agents:
-            self.agent_maps.append(
-                np.full((self.height, self.width), utils.MapTiles.UKNOWN))
-
-        # create empty object dictionary for each agent
-        for agent in self.agents:
-            self.agent_objects.append({})
 
     def save_map(self, save_dir):
         pass
