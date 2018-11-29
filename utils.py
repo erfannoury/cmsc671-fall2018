@@ -17,7 +17,7 @@ class Directions(Enum):
 
 class MapTiles(Enum):
     U = -1
-    UKNOWN = -1
+    UNKNOWN = -1
 
     P = 0
     PATH = 0
