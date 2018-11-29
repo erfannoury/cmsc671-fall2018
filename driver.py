@@ -220,6 +220,9 @@ class GameDriver(object):
         remaining_indices[1] = [j for idx, j in enumerate(nonwall_indices[1])
                                 if idx not in object_indices]
 
+        assert len(remaining_indices[0]) >= len(self.agents), \
+            'Not enough empty tiles are left'
+
         # initial locations for agents
         for i in range(len(self.agents)):
             idx = np.random.choice(len(remaining_indices[0]))
