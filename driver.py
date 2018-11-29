@@ -143,6 +143,10 @@ class GameDriver(object):
                          self.objects[final_loc].strength)
                     if np.random.random() < win_chance:
                         # agent wins
+                        if verbose:
+                            print('Agent {} won the fight against {}'.format(
+                                self.agents[idx].name,
+                                self.objects[final_loc].label))
                         self.agent_strengths[idx] = self.initial_strength
                         self.agent_strengths[idx] += \
                             self.objects[final_loc].strength
@@ -152,6 +156,10 @@ class GameDriver(object):
                                 del self.agent_objects[idx][final_loc]
                     else:
                         # agent loses
+                        if verbose:
+                            print('Agent {} lost the fight against {}'.format(
+                                self.agents[idx].name,
+                                self.objects[final_loc].label))
                         self.agent_strengths[idx] = 0
 
             self.agent_locations[idx] = final_loc
