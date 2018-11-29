@@ -208,8 +208,8 @@ class GameDriver(object):
             else:
                 self.objects[(i, j)] = utils.StaticMonster()
         # the boss
-        i = nonwall_indices[0][0]
-        j = nonwall_indices[1][0]
+        i = nonwall_indices[0][object_indices[0]]
+        j = nonwall_indices[1][object_indices[0]]
         self.objects[(i, j)] = utils.Boss()
         self.goal_loc = (i, j)
 
