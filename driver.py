@@ -32,6 +32,7 @@ class GameDriver(object):
         Map (JSON) file to load the game map
 
     """
+
     def __init__(self, height, width, num_powerups, num_monsters, agents,
                  initial_strength, save_dir=None, map_file=None):
         assert (num_monsters + num_powerups + 1) <= height * width, \
@@ -56,7 +57,7 @@ class GameDriver(object):
         self.agent_objects = []
         self.agent_locations = []
         self.agent_strengths = [initial_strength] * len(agents)
-        self.initial_strength = initial_strength
+        self.agent_max_strengths = [initial_strength] * len(agents)
 
         self.map_file = map_file
 
@@ -147,13 +148,13 @@ class GameDriver(object):
                             print('Agent {} won the fight against {}'.format(
                                 self.agents[idx].name,
                                 self.objects[final_loc].label))
-                        self.agent_strengths[idx] = self.initial_strength
-                        self.agent_strengths[idx] += \
+                        self.agent_max_strengths[idx] += \
                             self.objects[final_loc].strength
+                        self.agent_strengths[idx] = self.agent_strengths[idx]
                         del self.objects[final_loc]
                         for i in range(len(self.agents)):
-                            if final_loc in self.agent_objects[idx]:
-                                del self.agent_objects[idx][final_loc]
+                            if final_loc in self.agent_objects[i]:
+                                del self.agent_objects[i][final_loc]
                     else:
                         # agent loses
                         if verbose:
@@ -208,19 +209,29 @@ class GameDriver(object):
             else:
                 self.objects[(i, j)] = utils.StaticMonster()
         # the boss
-        i = nonwall_indices[0][0]
-        j = nonwall_indices[1][0]
+        i = nonwall_indices[0][object_indices[0]]
+        j = nonwall_indices[1][object_indices[0]]
         self.objects[(i, j)] = utils.Boss()
         self.goal_loc = (i, j)
 
+        remaining_indices = [[]] * 2
+
+        remaining_indices[0] = [i for idx, i in enumerate(nonwall_indices[0])
+                                if idx not in object_indices]
+        remaining_indices[1] = [j for idx, j in enumerate(nonwall_indices[1])
+                                if idx not in object_indices]
+
+        assert len(remaining_indices[0]) >= len(self.agents), \
+            'Not enough empty tiles are left'
+
         # initial locations for agents
         for i in range(len(self.agents)):
-            idx = np.random.choice(len(nonwall_indices[0]))
-            loc = (nonwall_indices[0][idx], nonwall_indices[1][idx])
+            idx = np.random.choice(len(remaining_indices[0]))
+            loc = (remaining_indices[0][idx], remaining_indices[1][idx])
             while (loc == self.goal_loc or
                    any(loc == prev_loc for prev_loc in self.agent_locations)):
-                idx = np.random.choice(len(nonwall_indices[0]))
-                loc = (nonwall_indices[0][idx], nonwall_indices[1][idx])
+                idx = np.random.choice(len(remaining_indices[0]))
+                loc = (remaining_indices[0][idx], remaining_indices[1][idx])
             self.agent_locations.append(loc)
 
     def save_map(self, save_dir):
