@@ -24,19 +24,27 @@ def main(args):
                         help='Save directory for saving the map')
     parser.add_argument('--map-file', type=str,
                         help='Path to the map JSON file')
+    parser.add_argument('--play-against-human', action='store_true',
+                        help='Whether to have a Human player as one of the '
+                        'agents in the game')
     parser.add_argument('--verbose', action='store_true',
                         help='Whether to be verbose when playing game')
 
     args = parser.parse_args(args)
 
     # TODO: Change how agents are populated
-    agent = RandomAgent()	# <-- change this to switch agents, for now
+    agent = RandomAgent()  # <-- change this to switch agents, for now
+
+    agents = [agent]
+    if args.play_against_human:
+        human = HumanAgent()
+        agents.append(human)
 
     game_driver = GameDriver(
         height=args.height, width=args.width,
         num_powerups=args.num_powerups,
         num_monsters=args.num_monsters,
-        agents=[agent],
+        agents=agents,
         initial_strength=args.initial_strength,
         save_dir=args.save_dir, map_file=args.map_file)
 

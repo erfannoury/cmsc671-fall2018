@@ -11,6 +11,8 @@ $ python play.py --height 10 --width 10 \
   --verbose
 ```
 
+If you want to play against a human (having a human player as an agent in addition to the random or your implemented agent), use the `--play-against-human` flag when calling `play.py`.
+
 To implement a new agent, create a new agent class inheriting from the `BaseAgent` class in the `agent.py` file. You just need to implement the `step(...)` function. Take a look at how `RandomAgent` has been implemented. You can also switch to `HumanAgent` to play by hand and see map printouts.
 
 ## Requirements
