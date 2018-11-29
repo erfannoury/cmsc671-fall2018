@@ -213,14 +213,21 @@ class GameDriver(object):
         self.objects[(i, j)] = utils.Boss()
         self.goal_loc = (i, j)
 
+        remaining_indices = [[]] * 2
+
+        remaining_indices[0] = [i for idx, i in enumerate(nonwall_indices[0])
+                                if idx not in object_indices]
+        remaining_indices[1] = [j for idx, j in enumerate(nonwall_indices[1])
+                                if idx not in object_indices]
+
         # initial locations for agents
         for i in range(len(self.agents)):
-            idx = np.random.choice(len(nonwall_indices[0]))
-            loc = (nonwall_indices[0][idx], nonwall_indices[1][idx])
+            idx = np.random.choice(len(remaining_indices[0]))
+            loc = (remaining_indices[0][idx], remaining_indices[1][idx])
             while (loc == self.goal_loc or
                    any(loc == prev_loc for prev_loc in self.agent_locations)):
-                idx = np.random.choice(len(nonwall_indices[0]))
-                loc = (nonwall_indices[0][idx], nonwall_indices[1][idx])
+                idx = np.random.choice(len(remaining_indices[0]))
+                loc = (remaining_indices[0][idx], remaining_indices[1][idx])
             self.agent_locations.append(loc)
 
     def save_map(self, save_dir):
