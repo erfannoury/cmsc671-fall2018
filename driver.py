@@ -152,8 +152,8 @@ class GameDriver(object):
                             self.objects[final_loc].strength
                         del self.objects[final_loc]
                         for i in range(len(self.agents)):
-                            if final_loc in self.agent_objects[idx]:
-                                del self.agent_objects[idx][final_loc]
+                            if final_loc in self.agent_objects[i]:
+                                del self.agent_objects[i][final_loc]
                     else:
                         # agent loses
                         if verbose:
