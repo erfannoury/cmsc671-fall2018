@@ -19,9 +19,9 @@ def main(args):
                         help='Number of monsters to put in the game map')
     parser.add_argument('--initial-strength', default=100, type=int,
                         help='Initial strength of each agent')
-    parser.add_argument('--save-dir', type=str, required=True,
+    parser.add_argument('--save-dir', type=str,
                         help='Save directory for saving the map')
-    parser.add_argument('--map-file', type=str, default=None,
+    parser.add_argument('--map-file', type=str,
                         help='Path to the map JSON file')
     parser.add_argument('--verbose', action='store_true',
                         help='Whether to be verbose when playing game')
