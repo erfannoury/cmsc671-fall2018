@@ -56,7 +56,7 @@ class GameDriver(object):
         self.agent_objects = []
         self.agent_locations = []
         self.agent_strengths = [initial_strength] * len(agents)
-        self.initial_strength = initial_strength
+        self.agent_max_strengths = [initial_strength] * len(agents)
 
         self.map_file = map_file
 
@@ -147,9 +147,9 @@ class GameDriver(object):
                             print('Agent {} won the fight against {}'.format(
                                 self.agents[idx].name,
                                 self.objects[final_loc].label))
-                        self.agent_strengths[idx] = self.initial_strength
-                        self.agent_strengths[idx] += \
+                        self.agent_max_strengths[idx] += \
                             self.objects[final_loc].strength
+                        self.agent_strengths[idx] = self.agent_strengths[idx]
                         del self.objects[final_loc]
                         for i in range(len(self.agents)):
                             if final_loc in self.agent_objects[i]:
