@@ -3,6 +3,7 @@ import sys
 from argparse import ArgumentParser
 
 from agent import RandomAgent
+from agent import HumanAgent
 from driver import GameDriver
 
 
@@ -29,7 +30,7 @@ def main(args):
     args = parser.parse_args(args)
 
     # TODO: Change how agents are populated
-    agent = RandomAgent()
+    agent = RandomAgent()	# <-- change this to switch agents, for now
 
     game_driver = GameDriver(
         height=args.height, width=args.width,
