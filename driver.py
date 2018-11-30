@@ -235,10 +235,69 @@ class GameDriver(object):
             self.agent_locations.append(loc)
 
     def save_map(self, save_dir):
-        pass
+        """
+        Save the game map in a JSON file named `map.json` in the given
+        directory
 
-    def load_map(self, load_dir):
-        pass
+        Parameters
+        ----------
+        save_dir: str
+            Path to the directory for saving the map file
+        """
+        os.makedirs(save_dir, exist_ok=True)
+        json_file = os.path.join(save_dir, 'map.json')
+
+        map_dict = {}
+        map_dict['height'] = self.height
+        map_dict['width'] = self.width
+        map_dict['game_map'] = list(map(
+            lambda t: t.value, self.game_map.flatten().tolist()))
+        map_dict['objects'] = [[*list(map(int, k)), v.label]
+                               for k, v in self.objects.items()]
+        map_dict['agent_locations'] = [list(map(int, k))
+                                       for k in self.agent_locations]
+
+        json.dump(map_dict, open(json_file, 'w'))
+
+
+    def load_map(self, map_file):
+        """
+        Load a previously saved game map.
+
+        Parameters
+        ----------
+        map_file: str
+            Address of the `map.json` file for loading the map
+        """
+        if not os.path.exists(map_file):
+            raise FileNotFoundError('The given map file does not exist')
+
+        map_dict = json.load(open(map_file, 'r'))
+
+        assert map_dict['height'] == self.height, \
+            'Map heights do not match'
+        assert map_dict['width'] == self.width, \
+            'Map widths do not match'
+        assert len(map_dict['agent_locations']) == len(self.agents), \
+            'Number of agents in the game do not match'
+
+        self.game_map = np.asarray(
+            list(map(lambda t: utils.MapTiles(t), map_dict['game_map']))
+        ).reshape(self.height, self.width)
+
+        for obj in map_dict['objects']:
+            if obj[-1] == 'boss':
+                self.objects[tuple(obj[:2])] = utils.Boss()
+                self.goal_loc = tuple(obj[:2])
+            elif obj[-1] == 'medkit':
+                self.objects[tuple(obj[:2])] = utils.PowerUp()
+            elif obj[-1] == 'skeleton':
+                self.objects[tuple(obj[:2])] = utils.StaticMonster()
+            else:
+                raise ValueError('Undefined object type')
+
+        self.agent_locations = [tuple(loc) for loc in
+                                map_dict['agent_locations']]
 
     def display_map(self):
         pass
