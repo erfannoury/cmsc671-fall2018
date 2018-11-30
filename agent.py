@@ -4,14 +4,24 @@ import util_functions as uf
 
 
 class BaseAgent(object):
-    def __init__(self, name='base_agent'):
+    def __init__(self, height, width, initial_strength, name='base_agent'):
         """
+        Base class for a game agent
 
         Parameters
         ----------
+        height: int
+            Height of the game map
+        width: int
+            Width of the game map
+        initial_strength: int
+            Initial strength of the agent
         name: str
             Name of the agent
         """
+        self.height = height
+        self.width = width
+        self.initial_strength = initial_strength
         self.name = name
 
     def step(self, location, strength, game_map, map_objects):
@@ -38,8 +48,24 @@ class BaseAgent(object):
 
 
 class RandomAgent(BaseAgent):
-    def __init__(self, name='random_agent'):
-        return super().__init__(name=name)
+    """
+    A random agent that moves in each direction randomly
+
+    Parameters
+    ----------
+    height: int
+        Height of the game map
+    width: int
+        Width of the game map
+    initial_strength: int
+        Initial strength of the agent
+    name: str
+        Name of the agent
+    """
+
+    def __init__(self, height, width, initial_strength, name='random_agent'):
+        super().__init__(height=height, width=width,
+                         initial_strength=initial_strength, name=name)
 
     def step(self, location, strength, game_map, map_objects):
         """
@@ -64,9 +90,27 @@ class RandomAgent(BaseAgent):
         """
         return np.random.choice(list(Directions))
 
+
 class HumanAgent(BaseAgent):
-    def __init__(self, name='human_agent'):
-        return super().__init__(name=name)
+    """
+    A human agent that that can be controlled by the user. At each time step
+    the agent will prompt for an input from the user.
+
+    Parameters
+    ----------
+    height: int
+        Height of the game map
+    width: int
+        Width of the game map
+    initial_strength: int
+        Initial strength of the agent
+    name: str
+        Name of the agent
+    """
+
+    def __init__(self, height, width, initial_strength, name='human_agent'):
+        super().__init__(height=height, width=width,
+                         initial_strength=initial_strength, name=name)
 
     def step(self, location, strength, game_map, map_objects):
         """
@@ -91,13 +135,13 @@ class HumanAgent(BaseAgent):
         """
 
         uf.print_map(game_map, 'a')
-        
-        dir_dict = {'N':Directions.NORTH,
-                    'S':Directions.SOUTH,
-                    'W':Directions.WEST,
-                    'E':Directions.EAST}
 
-        dirchar=''
+        dir_dict = {'N': Directions.NORTH,
+                    'S': Directions.SOUTH,
+                    'W': Directions.WEST,
+                    'E': Directions.EAST}
+
+        dirchar = ''
         while not dirchar in ['N', 'S', 'W', 'E']:
             dirchar = input("Please enter a direction (N/S/E/W): ").upper()
 

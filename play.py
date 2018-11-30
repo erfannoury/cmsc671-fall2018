@@ -33,11 +33,11 @@ def main(args):
     args = parser.parse_args(args)
 
     # TODO: Change how agents are populated
-    agent = RandomAgent()  # <-- change this to switch agents, for now
+    agent = RandomAgent(args.height, args.width, args.initial_strength)
 
     agents = [agent]
     if args.play_against_human:
-        human = HumanAgent()
+        human = HumanAgent(args.height, args.width, args.initial_strength)
         agents.append(human)
 
     game_driver = GameDriver(
