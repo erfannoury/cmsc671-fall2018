@@ -150,7 +150,7 @@ class GameDriver(object):
                                 self.objects[final_loc].label))
                         self.agent_max_strengths[idx] += \
                             self.objects[final_loc].strength
-                        self.agent_strengths[idx] = self.agent_strengths[idx]
+                        self.agent_strengths[idx] = self.agent_max_strengths[idx]
                         del self.objects[final_loc]
                         for i in range(len(self.agents)):
                             if final_loc in self.agent_objects[i]:
