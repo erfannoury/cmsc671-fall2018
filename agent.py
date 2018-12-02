@@ -133,9 +133,6 @@ class HumanAgent(BaseAgent):
         direction: Directions
             Which direction to move
         """
-
-        uf.print_map(game_map, 'a')
-
         dir_dict = {'N': Directions.NORTH,
                     'S': Directions.SOUTH,
                     'W': Directions.WEST,

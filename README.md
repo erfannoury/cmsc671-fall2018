@@ -8,7 +8,7 @@ $ python play.py --height 10 --width 10 \
   --num-powerups 2 --num-monsters 1 \
   --initial-strength 100 \
   --save-dir map1/ \
-  --verbose
+  --verbose --show-map --map-type emoji
 ```
 
 If you want to play against a human (having a human player as an agent in addition to the random or your implemented agent), use the `--play-against-human` flag when calling `play.py`.
