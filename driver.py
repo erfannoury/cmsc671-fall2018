@@ -79,8 +79,6 @@ class GameDriver(object):
 
             # update map for agents
             for i, j in product(*[[-1, 0, 1]] * 2):
-                if (i, j) == (0, 0):
-                    continue
                 new_i = current_loc[0] + i
                 new_j = current_loc[1] + j
 
