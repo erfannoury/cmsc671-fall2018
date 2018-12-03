@@ -6,7 +6,7 @@ import numpy as np
 MAP_TYPES = ['ascii', 'emoji']
 
 
-def map_to_text(game_map, type='a'):
+def map_to_text(game_map, type='ascii'):
     """
     Convert a map in the game format to something human-readable.
     By default, prints an ASCII map, 'a' for ASCII, 'u' for Unicode,
