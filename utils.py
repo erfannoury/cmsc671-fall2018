@@ -1,5 +1,7 @@
 from enum import Enum
 
+import numpy as np
+
 
 class Directions(Enum):
     EAST = 0
@@ -45,24 +47,67 @@ class MapObject(object):
         self.delta = 0
 
     def move(self):
+        """
+
+        Returns
+        -------
+        direction: Directions
+            Which direction to move
+        """
         pass
+
+
+class AgentPlaceholder(MapObject):
+    """
+    A placeholder for an agent for when an agent appears in another agent's
+    visible part of the map
+    """
+
+    def __init__(self, strength):
+        super().__init__()
+        self.strength = strength
+        self.label = 'agent'
+        self.delta = -strength
 
 
 class StaticMonster(MapObject):
     def __init__(self):
+        super().__init__()
         self.strength = 10
         self.label = 'skeleton'
         self.delta = -10
 
 
+class DynamicMonster(MapObject):
+    def __init__(self, initial_i, initial_j):
+        super().__init__()
+        self.initial_i = initial_i
+        self.initial_j = initial_j
+        self.strength = 10
+        self.label = 'skeleton'
+        self.delta = -10
+
+    def move(self):
+        """
+
+        Returns
+        -------
+        direction: Directions
+            Which direction to move
+        """
+        return np.random.choice(list(Directions))
+
+
 class PowerUp(MapObject):
     def __init__(self):
+        super().__init__()
         self.label = 'medkit'
         self.delta = 10
 
 
 class Boss(StaticMonster):
     def __init__(self):
+        super().__init__()
         self.strength = 100
         self.label = 'boss'
         self.delta = -100
