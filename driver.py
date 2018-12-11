@@ -346,6 +346,7 @@ class GameDriver(object):
                         self.agent_strengths[idx] = 0
 
             for idx in range(len(self.agents)):
+                self.agent_locations[idx] = self.agent_final_locs[idx]
                 if self.agent_strengths[idx] <= 0:
                     print(f'Agent {self.agents[idx].name} has died!')
                     continue
