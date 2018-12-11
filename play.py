@@ -5,7 +5,8 @@ from argparse import ArgumentParser
 from agent import RandomAgent
 from agent import HumanAgent
 from driver import GameDriver
-from util_functions import MAP_TYPES
+
+MAP_TYPES = ['ascii', 'emoji']
 
 
 def main(args):
