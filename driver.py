@@ -4,10 +4,10 @@ from itertools import cycle, product
 
 import numpy as np
 import scipy.signal as signal
+import emoji as em
 
 import utils
 from agent import BaseAgent
-from util_functions import print_map
 
 
 class GameDriver(object):
@@ -150,7 +150,7 @@ class GameDriver(object):
                     print('\tCurrent location is', curr_loc)
                     print('\tCurrent strength is', self.agent_strengths[idx])
                 if self.show_map:
-                    print_map(self.agent_maps[idx], self.map_type)
+                    self.display_map(idx)
 
                 objects_to_pass = {}
                 objects_to_pass.update(self.agent_objects[idx])
@@ -526,5 +526,67 @@ class GameDriver(object):
         self.agent_locations = [tuple(loc) for loc in
                                 map_dict['agent_locations']]
 
-    def display_map(self):
-        pass
+    def display_map(self, agent_idx):
+        ascii_dict = {utils.MapTiles.PATH: 'P', utils.MapTiles.SAND: 'S',
+                      utils.MapTiles.MOUNTAIN: 'M', utils.MapTiles.WALL: 'W',
+                      utils.MapTiles.UNKNOWN: 'U', 'other_agent': 'E',
+                      'agent': 'X', 'dynamic_monster': 'D', 'monster': 'O',
+                      'powerup': 'R', 'boss': 'B', 'deadagent': '-'}
+
+        emoji_dict = {
+            utils.MapTiles.UNKNOWN:
+                em.emojize(':white_large_square:', use_aliases=True),
+            utils.MapTiles.MOUNTAIN:
+                em.emojize(':mountain:', use_aliases=True),
+            utils.MapTiles.SAND:
+                em.emojize(':palm_tree:', use_aliases=True),
+            utils.MapTiles.PATH:
+                em.emojize(':black_large_square:', use_aliases=True),
+            utils.MapTiles.WALL:
+                em.emojize(':construction:', use_aliases=True),
+            'other_agent':
+                em.emojize(':bust_in_silhouette:', use_aliases=True),
+            'agent':
+                em.emojize(':alien:', use_aliases=True),
+            'dynamic_monster':
+                em.emojize(':smiling_imp:', use_aliases=True),
+            'monster':
+                em.emojize(':imp:', use_aliases=True),
+            'powerup':
+                em.emojize(':heartpulse:', use_aliases=True),
+            'boss':
+                em.emojize(':guardsman:', use_aliases=True),
+            'deadagent':
+                em.emojize(':skull:', use_aliases=True)}
+
+        printable_map = np.full(self.agent_maps[agent_idx].shape, "x")
+
+        if self.map_type == 'ascii':
+            chosen_dict = ascii_dict
+        else:
+            chosen_dict = emoji_dict
+
+        for i in range(self.agent_maps[agent_idx].shape[0]):
+            for j in range(self.agent_maps[agent_idx].shape[1]):
+                if self.agent_locations[agent_idx] == (i, j):
+                    printable_map[i, j] = chosen_dict['agent']
+                elif (i, j) in self.agent_moving_objects[agent_idx]:
+                    moving_obj = self.agent_moving_objects[agent_idx][(i, j)]
+                    if isinstance(moving_obj, utils.AgentPlaceholder):
+                        printable_map[i, j] = chosen_dict['other_agent']
+                    if isinstance(moving_obj, utils.DynamicMonster):
+                        printable_map[i, j] = chosen_dict['dynamic_monster']
+                elif (i, j) in self.agent_objects[agent_idx]:
+                    obj = self.agent_objects[agent_idx][(i, j)]
+                    if isinstance(obj, utils.StaticMonster):
+                        printable_map[i, j] = chosen_dict['monster']
+                    elif isinstance(obj, utils.PowerUp):
+                        printable_map[i, j] = chosen_dict['powerup']
+                    elif isinstance(obj, utils.Boss):
+                        printable_map[i, j] = chosen_dict['boss']
+                else:
+                    printable_map[i, j] = \
+                        chosen_dict[self.agent_maps[agent_idx][i, j]]
+        for i in range(self.agent_maps[agent_idx].shape[0]):
+            print(' '.join(printable_map[i, :]))
+        print()
