@@ -19,6 +19,8 @@ def main(args):
                         help='Number of powerups to put in the game map')
     parser.add_argument('--num-monsters', type=int, required=True,
                         help='Number of monsters to put in the game map')
+    parser.add_argument('--num-dynamic-monsters', type=int, required=True,
+                        help='Number of dynamic monsters to put in the game')
     parser.add_argument('--initial-strength', default=100, type=int,
                         help='Initial strength of each agent')
     parser.add_argument('--save-dir', type=str,
@@ -50,13 +52,18 @@ def main(args):
         height=args.height, width=args.width,
         num_powerups=args.num_powerups,
         num_monsters=args.num_monsters,
+        num_dynamic_monsters=args.num_dynamic_monsters,
         agents=agents,
         initial_strength=args.initial_strength,
         show_map=args.show_map, map_type=args.map_type,
         save_dir=args.save_dir, map_file=args.map_file)
 
     print('Starting game')
-    game_driver.play(verbose=args.verbose)
+    try:
+        game_driver.play(verbose=args.verbose)
+    except StopIteration as e:
+        print(e)
+        return
 
 
 if __name__ == '__main__':
