@@ -87,6 +87,10 @@ class GameDriver(object):
         while True:
             step += 1
             for idx, agent in enumerate(self.agents):
+                # check if the agent is still alive
+                if self.agent_strengths[idx] <= 0:
+                    # agent has died
+                    continue
                 # first update the map for each agent
                 curr_loc = self.agent_locations[idx]
                 self.agent_moving_objects[idx] = {}
@@ -134,6 +138,10 @@ class GameDriver(object):
                                     self.agent_strengths[jdx])
 
             for idx, agent in enumerate(self.agents):
+                # check if the agent is still alive
+                if self.agent_strengths[idx] <= 0:
+                    # agent has died
+                    continue
                 # call each agent and find its final location
                 if verbose:
                     print('-' * 40)
@@ -225,9 +233,18 @@ class GameDriver(object):
                         self.dynamic_monsters[curr_loc]
                     del self.dynamic_monsters[curr_loc]
 
-            for idx, jdx in product(*[range(len(self.agents))] * 2):
-                # see if two agents decided to move to the same square
-                if idx != jdx:
+            for idx in range(1, len(self.agents)):
+                # check if the agent idx is still alive
+                if self.agent_strengths[idx] <= 0:
+                    # agent has died
+                    continue
+
+                for jdx in range(0, idx):
+                    # check if the agent jdx is still alive
+                    if self.agent_strengths[jdx] <= 0:
+                        # agent has died
+                        continue
+                    # see if two agents decided to move to the same square
                     if self.agent_final_locs[idx] == self.agent_final_locs[jdx]:
                         # the two agents should fight
                         strength_denom = self.agent_strengths[idx] + \
@@ -261,10 +278,10 @@ class GameDriver(object):
                             self.agent_objects[idx] = {}
 
             for idx in range(len(self.agents)):
-                # checking objects in the agent's destination tiles
-                if self.agent_strengths[idx] == 0:
+                if self.agent_strengths[idx] <= 0:
                     # agent has died, skip it
                     continue
+                # checking objects in the agent's destination tiles
                 final_loc = self.agent_final_locs[idx]
                 if final_loc in self.objects:
                     if isinstance(self.objects[final_loc], utils.PowerUp):
@@ -335,6 +352,7 @@ class GameDriver(object):
                 elif final_loc == self.goal_loc:
                     print(f'Agent {self.agents[idx].name} won the game!')
                     raise StopIteration('An agent won the game!')
+
             total_agent_strengths = np.sum(self.agent_strengths)
             if total_agent_strengths <= 0:
                 raise StopIteration('All the agents have died!')
