@@ -3,6 +3,7 @@ import json
 from itertools import cycle, product
 
 import numpy as np
+import scipy.signal as signal
 
 import utils
 from agent import BaseAgent
@@ -23,6 +24,8 @@ class GameDriver(object):
         Number of powerups to use in the game
     num_monsters:
         Number of monsters to use in the game
+    num_dynamic_monsters:
+        Number of monsters to use in the game
     agents: list
         A list of agents
     initial_strength: int
@@ -38,7 +41,8 @@ class GameDriver(object):
 
     """
 
-    def __init__(self, height, width, num_powerups, num_monsters, agents,
+    def __init__(self, height, width, num_powerups, num_monsters,
+                 num_dynamic_monsters, agents,
                  initial_strength, show_map, map_type,
                  save_dir=None, map_file=None):
         assert (num_monsters + num_powerups + 1) <= height * width, \
@@ -49,6 +53,7 @@ class GameDriver(object):
         self.height = height
         self.num_powerups = num_powerups
         self.num_monsters = num_monsters
+        self.num_dynamic_monsters = num_dynamic_monsters
 
         if not isinstance(agents, list):
             agents = [agents]
@@ -58,12 +63,15 @@ class GameDriver(object):
 
         self.game_map = None
         self.objects = {}
+        self.dynamic_monsters = {}
 
         self.agent_maps = []
         self.agent_objects = []
+        self.agent_moving_objects = [{}] * len(agents)
         self.agent_locations = []
         self.agent_strengths = [initial_strength] * len(agents)
         self.agent_max_strengths = [initial_strength] * len(agents)
+        self.agent_final_locs = [[]] * len(agents)
 
         self.map_file = map_file
         self.show_map = show_map
@@ -75,95 +83,243 @@ class GameDriver(object):
             self.save_map(save_dir)
 
     def play(self, verbose=False):
-        for step, agent in enumerate(cycle(self.agents)):
-            idx = step % len(self.agents)
-            current_loc = self.agent_locations[idx]
+        step = -1
+        while True:
+            step += 1
+            for idx, agent in enumerate(self.agents):
+                # first update the map for each agent
+                curr_loc = self.agent_locations[idx]
+                self.agent_moving_objects[idx] = {}
 
-            if verbose:
-                print('-' * 40)
-                print(f'Playing step {step + 1} for {self.agents[idx].name}')
-                print('\tCurrent location is', current_loc)
-                print('\tCurrent strength is', self.agent_strengths[idx])
+                for i, j in product(*[[-1, 0, 1]] * 2):
+                    new_i = curr_loc[0] + i
+                    new_j = curr_loc[1] + j
 
-            # update map for agents
-            for i, j in product(*[[-1, 0, 1]] * 2):
-                new_i = current_loc[0] + i
-                new_j = current_loc[1] + j
+                    if 0 <= new_i < self.height and 0 <= new_j < self.width:
+                        if (self.agent_maps[idx][new_i, new_j] ==
+                                utils.MapTiles.U):
+                            if (i == -1 and j == -1 and
+                                    self.nwblocks[curr_loc[0], curr_loc[1]] > 0):
+                                # north west walls are blocking
+                                continue
+                            elif (i == -1 and j == 1 and
+                                  self.neblocks[curr_loc[0], curr_loc[1]] > 0):
+                                # north east walls are blocking
+                                continue
+                            elif (i == 1 and j == -1 and
+                                  self.swblocks[curr_loc[0], curr_loc[1]] > 0):
+                                # south west walls are blocking
+                                continue
+                            elif (i == 1 and j == 1 and
+                                  self.seblocks[curr_loc[0], curr_loc[1]] > 0):
+                                # south east walls are blocking
+                                continue
+                            # no walls are blocking
+                            self.agent_maps[idx][new_i, new_j] = \
+                                self.game_map[new_i, new_j]
+                    if (new_i, new_j) in self.objects:
+                        self.agent_objects[idx][(new_i, new_j)] = \
+                            self.objects[(new_i, new_j)]
+                    if (new_i, new_j) in self.dynamic_monsters:
+                        self.agent_moving_objects[idx][(new_i, new_j)] = \
+                            self.dynamic_monsters[(new_i), (new_j)]
+                    for jdx in range(len(self.agents)):
+                        if (jdx != idx and
+                                self.agent_locations[jdx] == (new_i, new_j)):
+                            # if the other agent is visible, add an agent
+                            # placeholder to the list of objects for current
+                            # agent
+                            self.agent_moving_objects[idx][(new_i, new_j)] = \
+                                utils.AgentPlaceholder(
+                                    self.agent_strengths[jdx])
 
-                if 0 <= new_i < self.height and 0 <= new_j < self.width:
-                    if self.agent_maps[idx][new_i, new_j] == utils.MapTiles.U:
-                        self.agent_maps[idx][new_i, new_j] = \
-                            self.game_map[new_i, new_j]
-                if (new_i, new_j) in self.objects:
-                    self.agent_objects[idx][(new_i, new_j)] = \
-                        self.objects[(new_i, new_j)]
+            for idx, agent in enumerate(self.agents):
+                # call each agent and find its final location
+                if verbose:
+                    print('-' * 40)
+                    print(
+                        f'Playing step {step + 1} for {self.agents[idx].name}')
+                    print('\tCurrent location is', curr_loc)
+                    print('\tCurrent strength is', self.agent_strengths[idx])
+                if self.show_map:
+                    print_map(self.agent_maps[idx], self.map_type)
 
-            if self.show_map:
-                print_map(self.agent_maps[idx], self.map_type)
+                objects_to_pass = {}
+                objects_to_pass.update(self.agent_objects[idx])
+                objects_to_pass.update(self.agent_moving_objects[idx])
+                direction = agent.step(
+                    location=self.agent_locations[idx],
+                    strength=self.agent_strengths[idx],
+                    game_map=self.agent_maps[idx],
+                    map_objects=objects_to_pass)
 
-            direction = agent.step(
-                location=self.agent_locations[idx],
-                strength=self.agent_strengths[idx],
-                game_map=self.agent_maps[idx],
-                map_objects=self.agent_objects[idx])
+                if verbose:
+                    print('{} selected to move in the {} direction.'.format(
+                        self.agents[idx].name, direction.name))
 
-            if verbose:
-                print('{} selected to move in the {} direction.'.format(
-                    self.agents[idx].name, direction.name))
+                assert isinstance(direction, utils.Directions), \
+                    'Wrong type of direction returned'
 
-            assert isinstance(direction, utils.Directions), \
-                'Wrong type of direction returned'
+                if direction == utils.Directions.NORTH:
+                    dst_loc = (curr_loc[0] - 1, curr_loc[1])
+                elif direction == utils.Directions.WEST:
+                    dst_loc = (curr_loc[0], curr_loc[1] - 1)
+                elif direction == utils.Directions.SOUTH:
+                    dst_loc = (curr_loc[0] + 1, curr_loc[1])
+                else:
+                    dst_loc = (curr_loc[0], curr_loc[1] + 1)
 
-            if direction == utils.Directions.NORTH:
-                dst_loc = (current_loc[0] - 1, current_loc[1])
-            elif direction == utils.Directions.WEST:
-                dst_loc = (current_loc[0], current_loc[1] - 1)
-            elif direction == utils.Directions.SOUTH:
-                dst_loc = (current_loc[0] + 1, current_loc[1])
-            else:
-                dst_loc = (current_loc[0], current_loc[1] + 1)
+                if not (0 <= dst_loc[0] < self.height and
+                        0 <= dst_loc[1] < self.width):
+                    # agent tried to move outside of the map
+                    final_loc = curr_loc
+                    self.agent_strengths[idx] -= 1
+                elif (self.game_map[dst_loc[0], dst_loc[1]] ==
+                      utils.MapTiles.WALL):
+                    # agent hit a wall
+                    final_loc = curr_loc
+                    self.agent_strengths[idx] -= 1
+                elif (self.agent_strengths[idx] <
+                      utils.tile_cost[self.game_map[dst_loc[0], dst_loc[1]]]):
+                    # agent does not have enough strength to make the move
+                    final_loc = curr_loc
+                    self.agent_strengths[idx] -= 1
+                else:
+                    # agent moved normally
+                    final_loc = dst_loc
+                    self.agent_strengths[idx] -= \
+                        utils.tile_cost[self.game_map[dst_loc[0], dst_loc[1]]]
+                self.agent_final_locs[idx] = final_loc
 
-            if not (0 <= dst_loc[0] < self.height and
-                    0 <= dst_loc[1] < self.width):
-                final_loc = current_loc
-                self.agent_strengths[idx] -= 1
-            elif self.game_map[dst_loc[0], dst_loc[1]] == utils.MapTiles.WALL:
-                final_loc = current_loc
-                self.agent_strengths[idx] -= 1
-            elif (self.agent_strengths[idx] <
-                  utils.tile_cost[self.game_map[dst_loc[0], dst_loc[1]]]):
-                final_loc = current_loc
-                self.agent_strengths[idx] -= 1
-            else:
-                final_loc = dst_loc
-                self.agent_strengths[idx] -= \
-                    utils.tile_cost[self.game_map[dst_loc[0], dst_loc[1]]]
+            for curr_loc, dynmon in self.dynamic_monsters.items():
+                # move the dynamic monsters to new locations
+                direction = dynmon.move()
 
-            if final_loc in self.objects:
-                if isinstance(self.objects[final_loc], utils.PowerUp):
-                    self.agent_strengths[idx] += self.objects[final_loc].delta
-                    del self.objects[final_loc]
-                    for i in range(len(self.agents)):
-                        if final_loc in self.agent_objects[i]:
-                            del self.agent_objects[i][final_loc]
-                elif isinstance(self.objects[final_loc], utils.StaticMonster):
+                if direction == utils.Directions.NORTH:
+                    dst_loc = (curr_loc[0] - 1, curr_loc[1])
+                elif direction == utils.Directions.WEST:
+                    dst_loc = (curr_loc[0], curr_loc[1] - 1)
+                elif direction == utils.Directions.SOUTH:
+                    dst_loc = (curr_loc[0] + 1, curr_loc[1])
+                else:
+                    dst_loc = (curr_loc[0], curr_loc[1] + 1)
+
+                if not (0 <= dst_loc[0] < self.height and
+                        0 <= dst_loc[1] < self.width):
+                    # dynamic monster tried to move outside of the map
+                    final_loc = curr_loc
+                elif (self.game_map[dst_loc[0], dst_loc[1]] ==
+                      utils.MapTiles.WALL):
+                    # dynamic monster hit a wall
+                    final_loc = curr_loc
+                elif dst_loc in self.dynamic_monsters:
+                    # a dynamic monster is currently in this tile
+                    final_loc = curr_loc
+                else:
+                    # dynamic monster moved normally
+                    final_loc = dst_loc
+
+                if final_loc != curr_loc:
+                    # move the monster
+                    self.dynamic_monsters[final_loc] = \
+                        self.dynamic_monsters[curr_loc]
+                    del self.dynamic_monsters[curr_loc]
+
+            for idx, jdx in product(*[range(len(self.agents))] * 2):
+                # see if two agents decided to move to the same square
+                if idx != jdx:
+                    if self.agent_final_locs[idx] == self.agent_final_locs[jdx]:
+                        # the two agents should fight
+                        strength_denom = self.agent_strengths[idx] + \
+                            self.agent_strengths[jdx]
+                        if strength_denom == 0:
+                            # the two agents have died
+                            continue
+                        idx_win_chance = \
+                            self.agent_strengths[idx] / strength_denom
+                        if np.random.random() < idx_win_chance:
+                            # agent idx wins
+                            if verbose:
+                                print('Agent {} won the fight against agent {}'
+                                      .format(
+                                          self.agents[idx].name,
+                                          self.agents[jdx].name))
+                            self.agent_strengths[idx] += \
+                                self.agent_strengths[jdx]
+                            self.agent_strengths[jdx] = 0
+                            self.agent_objects[jdx] = {}
+                        else:
+                            # agent jdx wins
+                            if verbose:
+                                print('Agent {} won the fight against agent {}'
+                                      .format(
+                                          self.agents[jdx].name,
+                                          self.agents[idx].name))
+                            self.agent_strengths[jdx] += \
+                                self.agent_strengths[idx]
+                            self.agent_strengths[idx] = 0
+                            self.agent_objects[idx] = {}
+
+            for idx in range(len(self.agents)):
+                # checking objects in the agent's destination tiles
+                if self.agent_strengths[idx] == 0:
+                    # agent has died, skip it
+                    continue
+                final_loc = self.agent_final_locs[idx]
+                if final_loc in self.objects:
+                    if isinstance(self.objects[final_loc], utils.PowerUp):
+                        self.agent_strengths[idx] += \
+                            self.objects[final_loc].delta
+                        del self.objects[final_loc]
+                        for i in range(len(self.agents)):
+                            if final_loc in self.agent_objects[i]:
+                                del self.agent_objects[i][final_loc]
+                    elif isinstance(self.objects[final_loc],
+                                    utils.StaticMonster):
+                        # fight
+                        win_chance = self.agent_strengths[idx] / \
+                            (self.agent_strengths[idx] +
+                             self.objects[final_loc].strength)
+                        if np.random.random() < win_chance:
+                            # agent wins
+                            if verbose:
+                                print('Agent {} won the fight against {}'
+                                      .format(
+                                          self.agents[idx].name,
+                                          self.objects[final_loc].label))
+                            self.agent_max_strengths[idx] += \
+                                self.objects[final_loc].strength
+                            self.agent_strengths[idx] = \
+                                self.agent_max_strengths[idx]
+                            del self.objects[final_loc]
+                            for i in range(len(self.agents)):
+                                if final_loc in self.agent_objects[i]:
+                                    del self.agent_objects[i][final_loc]
+                        else:
+                            # agent loses
+                            if verbose:
+                                print('Agent {} lost the fight against {}'
+                                      .format(
+                                          self.agents[idx].name,
+                                          self.objects[final_loc].label))
+                            self.agent_strengths[idx] = 0
+                if final_loc in self.dynamic_monsters:
+                    # fight against the dynamic monster
                     # fight
                     win_chance = self.agent_strengths[idx] / \
                         (self.agent_strengths[idx] +
-                         self.objects[final_loc].strength)
+                            self.dynamic_monsters[final_loc].strength)
                     if np.random.random() < win_chance:
                         # agent wins
                         if verbose:
                             print('Agent {} won the fight against {}'.format(
                                 self.agents[idx].name,
-                                self.objects[final_loc].label))
+                                self.dynamic_monsters[final_loc].label))
                         self.agent_max_strengths[idx] += \
-                            self.objects[final_loc].strength
-                        self.agent_strengths[idx] = self.agent_max_strengths[idx]
-                        del self.objects[final_loc]
-                        for i in range(len(self.agents)):
-                            if final_loc in self.agent_objects[i]:
-                                del self.agent_objects[i][final_loc]
+                            self.dynamic_monsters[final_loc].strength
+                        self.agent_strengths[idx] = \
+                            self.agent_max_strengths[idx]
+                        del self.dynamic_monsters[final_loc]
                     else:
                         # agent loses
                         if verbose:
@@ -172,13 +328,16 @@ class GameDriver(object):
                                 self.objects[final_loc].label))
                         self.agent_strengths[idx] = 0
 
-            self.agent_locations[idx] = final_loc
-            if self.agent_strengths[idx] <= 0:
-                print(f'Agent {self.agents[idx].name} died!')
-                break
-            elif final_loc == self.goal_loc:
-                print(f'Agent {self.agents[idx].name} won the game!')
-                break
+            for idx in range(len(self.agents)):
+                if self.agent_strengths[idx] <= 0:
+                    print(f'Agent {self.agents[idx].name} has died!')
+                    continue
+                elif final_loc == self.goal_loc:
+                    print(f'Agent {self.agents[idx].name} won the game!')
+                    raise StopIteration('An agent won the game!')
+            total_agent_strengths = np.sum(self.agent_strengths)
+            if total_agent_strengths <= 0:
+                raise StopIteration('All the agents have died!')
 
     def initialize_game(self):
         """
@@ -204,19 +363,38 @@ class GameDriver(object):
         self.game_map = np.random.choice(
             list(utils.MapTiles)[1:], (self.height, self.width),
             p=[0.4, 0.3, 0.2, 0.1])
+        walls = np.pad((self.game_map == utils.MapTiles.WALL), 1,
+                       mode='constant', constant_values=1).astype(np.int32)
+        nw_filters = np.asarray([[0, 0.5, 0], [0.5, 0, 0], [0] * 3])
+        ne_filters = np.asarray([[0, 0.5, 0], [0, 0, 0.5], [0] * 3])
+        se_filters = np.asarray([[0] * 3, [0, 0, 0.5], [0, 0.5, 0]])
+        sw_filters = np.asarray([[0] * 3, [0.5, 0, 0], [0, 0.5, 0]])
+        self.nwblocks = (signal.correlate2d(walls, nw_filters, mode='valid') >=
+                         1).astype(np.int32)
+        self.neblocks = (signal.correlate2d(walls, ne_filters, mode='valid') >=
+                         1).astype(np.int32)
+        self.seblocks = (signal.correlate2d(walls, se_filters, mode='valid') >=
+                         1).astype(np.int32)
+        self.swblocks = (signal.correlate2d(walls, sw_filters, mode='valid') >=
+                         1).astype(np.int32)
+
         nonwall_indices = np.where(self.game_map != utils.MapTiles.WALL)
         # generate objects in the game map
         object_indices = np.random.choice(
             len(nonwall_indices[0]),
-            self.num_monsters + self.num_powerups + 1,  # extra for the boss
+            self.num_monsters + self.num_powerups +
+            self.num_dynamic_monsters + 1,  # extra for the boss
             replace=False)
         for cnt, idx in enumerate(object_indices[1:]):
             i = nonwall_indices[0][idx]
             j = nonwall_indices[1][idx]
             if cnt < self.num_powerups:
                 self.objects[(i, j)] = utils.PowerUp()
-            else:
+            elif cnt < self.num_powerups + self.num_monsters:
                 self.objects[(i, j)] = utils.StaticMonster()
+            else:
+                self.dynamic_monsters[(i, j)] = utils.DynamicMonster(i, j)
+
         # the boss
         i = nonwall_indices[0][object_indices[0]]
         j = nonwall_indices[1][object_indices[0]]
@@ -265,9 +443,11 @@ class GameDriver(object):
                                for k, v in self.objects.items()]
         map_dict['agent_locations'] = [list(map(int, k))
                                        for k in self.agent_locations]
+        map_dict['dynamic_monsters'] = [
+            [int(m.initial_i), int(m.initial_j)] for
+            k, m in self.dynamic_monsters.items()]
 
         json.dump(map_dict, open(json_file, 'w'))
-
 
     def load_map(self, map_file):
         """
@@ -294,6 +474,21 @@ class GameDriver(object):
             list(map(lambda t: utils.MapTiles(t), map_dict['game_map']))
         ).reshape(self.height, self.width)
 
+        walls = np.pad((self.game_map == utils.MapTiles.WALL), 1,
+                       mode='constant', constant_values=1).astype(np.int32)
+        nw_filters = np.asarray([[0, 0.5, 0], [0.5, 0, 0], [0] * 3])
+        ne_filters = np.asarray([[0, 0.5, 0], [0, 0, 0.5], [0] * 3])
+        se_filters = np.asarray([[0] * 3, [0, 0, 0.5], [0, 0.5, 0]])
+        sw_filters = np.asarray([[0] * 3, [0.5, 0, 0], [0, 0.5, 0]])
+        self.nwblocks = (signal.correlate2d(walls, nw_filters, mode='valid') >=
+                         1).astype(np.int32)
+        self.neblocks = (signal.correlate2d(walls, ne_filters, mode='valid') >=
+                         1).astype(np.int32)
+        self.seblocks = (signal.correlate2d(walls, se_filters, mode='valid') >=
+                         1).astype(np.int32)
+        self.swblocks = (signal.correlate2d(walls, sw_filters, mode='valid') >=
+                         1).astype(np.int32)
+
         for obj in map_dict['objects']:
             if obj[-1] == 'boss':
                 self.objects[tuple(obj[:2])] = utils.Boss()
@@ -304,6 +499,10 @@ class GameDriver(object):
                 self.objects[tuple(obj[:2])] = utils.StaticMonster()
             else:
                 raise ValueError('Undefined object type')
+
+        for m in map_dict['dynamic_monsters']:
+            self.dynamic_monsters[(m[0], m[1])] = \
+                utils.DynamicMonster(m[0], m[1])
 
         self.agent_locations = [tuple(loc) for loc in
                                 map_dict['agent_locations']]
