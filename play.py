@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from agent import RandomAgent
 from agent import HumanAgent
 from driver import GameDriver
+from utils import InvalidMapError
 
 MAP_TYPES = ['ascii', 'emoji']
 
@@ -49,15 +50,20 @@ def main(args):
         human = HumanAgent(args.height, args.width, args.initial_strength)
         agents.append(human)
 
-    game_driver = GameDriver(
-        height=args.height, width=args.width,
-        num_powerups=args.num_powerups,
-        num_monsters=args.num_monsters,
-        num_dynamic_monsters=args.num_dynamic_monsters,
-        agents=agents,
-        initial_strength=args.initial_strength,
-        show_map=args.show_map, map_type=args.map_type,
-        save_dir=args.save_dir, map_file=args.map_file)
+    try:
+        game_driver = GameDriver(
+            height=args.height, width=args.width,
+            num_powerups=args.num_powerups,
+            num_monsters=args.num_monsters,
+            num_dynamic_monsters=args.num_dynamic_monsters,
+            agents=agents,
+            initial_strength=args.initial_strength,
+            show_map=args.show_map, map_type=args.map_type,
+            save_dir=args.save_dir, map_file=args.map_file)
+    except InvalidMapError as e:
+        print('The game map could not be created!')
+        print(e)
+        print('Restart the game')
 
     print('Starting game')
     try:
