@@ -1,6 +1,5 @@
 import numpy as np
 from utils import Directions
-import util_functions as uf
 
 
 class BaseAgent(object):
