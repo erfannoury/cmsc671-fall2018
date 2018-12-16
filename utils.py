@@ -3,6 +3,13 @@ from enum import Enum
 import numpy as np
 
 
+class InvalidMapError(Exception):
+    """
+    Custom Exception for when an invalid map was created
+    """
+    pass
+
+
 class Directions(Enum):
     EAST = 0
     E = 0
