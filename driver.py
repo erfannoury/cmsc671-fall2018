@@ -45,7 +45,8 @@ class GameDriver(object):
                  num_dynamic_monsters, agents,
                  initial_strength, show_map, map_type,
                  save_dir=None, map_file=None):
-        assert (num_monsters + num_powerups + 1) <= height * width, \
+        objects_count = num_monsters + num_powerups + num_dynamic_monsters + 1
+        assert objects_count <= height * width, \
             'Number of objects in the map should be less than the number of ' \
             'tiles in the map'
 
@@ -427,8 +428,8 @@ class GameDriver(object):
         remaining_indices[1] = [j for idx, j in enumerate(nonwall_indices[1])
                                 if idx not in object_indices]
 
-        assert len(remaining_indices[0]) >= len(self.agents), \
-            'Not enough empty tiles are left'
+        if len(remaining_indices[0]) < len(self.agents):
+            raise utils.InvalidMapError('Not enough empty tiles are left')
 
         # initial locations for agents
         for i in range(len(self.agents)):
@@ -445,7 +446,8 @@ class GameDriver(object):
                        self.neblocks[loc[0], loc[1]] + \
                        self.seblocks[loc[0], loc[1]] + \
                        self.swblocks[loc[0], loc[1]]
-            assert wall_sum < 3, 'The map is unsolvable'
+            if wall_sum >= 3:
+                raise utils.InvalidMapError('The map is unsolvable')
 
     def save_map(self, save_dir):
         """
