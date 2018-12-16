@@ -440,6 +440,13 @@ class GameDriver(object):
                 loc = (remaining_indices[0][idx], remaining_indices[1][idx])
             self.agent_locations.append(loc)
 
+        for loc in self.agent_locations:
+            wall_sum = self.nwblocks[loc[0], loc[1]] + \
+                       self.neblocks[loc[0], loc[1]] + \
+                       self.seblocks[loc[0], loc[1]] + \
+                       self.swblocks[loc[0], loc[1]]
+            assert wall_sum < 3, 'The map is unsolvable'
+
     def save_map(self, save_dir):
         """
         Save the game map in a JSON file named `map.json` in the given
