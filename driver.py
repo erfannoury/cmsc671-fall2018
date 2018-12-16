@@ -342,7 +342,7 @@ class GameDriver(object):
                         if verbose:
                             print('Agent {} lost the fight against {}'.format(
                                 self.agents[idx].name,
-                                self.objects[final_loc].label))
+                                self.dynamic_monsters[final_loc].label))
                         self.agent_strengths[idx] = 0
 
             for idx in range(len(self.agents)):
